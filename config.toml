@@ -1,0 +1,28 @@
+baseURL = 'http://hawkingrei.com/'
+copyright = "© Hawkingrei"
+languageCode = 'en-us'
+theme = 'hugo-ink'
+title = "Hawkingrei"
+# Code Highlight
+pygmentscodefences = true
+pygmentscodefencesguesssyntax = true
+pygmentsstyle = "vs"
+
+paginate = 4 # articles per page
+
+[params]
+avatar = "https://avatars.githubusercontent.com/u/3427324"
+mode = "light"
+featherIconsCDN = true
+subtitle = "一生想做浪漫极客"
+excludedTypes = ["page", "pages"]
+
+[[params.social]]
+icon = "github"
+name = "GitHub"
+url = "https://github.com/hawkingrei"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true

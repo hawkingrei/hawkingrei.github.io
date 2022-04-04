@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>LevelDB on Hawkingrei</title>
+    <link>http://hawkingrei.com/tags/leveldb/</link>
+    <description>Recent content in LevelDB on Hawkingrei</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© Hawkingrei</copyright>
+    <lastBuildDate>Sat, 09 Dec 2017 14:00:00 +0000</lastBuildDate><atom:link href="http://hawkingrei.com/tags/leveldb/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>LevelDB代码阅读：Arena</title>
+      <link>http://hawkingrei.com/posts/articles/area_in_leveldb/2017-12-09-arena-in-leveldb/</link>
+      <pubDate>Sat, 09 Dec 2017 14:00:00 +0000</pubDate>
+      
+      <guid>http://hawkingrei.com/posts/articles/area_in_leveldb/2017-12-09-arena-in-leveldb/</guid>
+      <description>Arena源代码分析 首先我们来看定义
+class Arena {  public:  Arena();  ~Arena();   // Return a pointer to a newly allocated memory block of &amp;#34;bytes&amp;#34; bytes.  char* Allocate(size_t bytes);   // Allocate memory with the normal alignment guarantees provided by malloc  char* AllocateAligned(size_t bytes);   // Returns an estimate of the total memory usage of data allocated  // by the arena.  size_t MemoryUsage() const {  return reinterpret_cast&amp;lt;uintptr_t&amp;gt;(memory_usage_.</description>
+    </item>
+    
+    <item>
+      <title>LevelDB代码阅读：Varint</title>
+      <link>http://hawkingrei.com/posts/articles/varint_in_leveldb/2017-11-15-varint-in-leveldb/</link>
+      <pubDate>Wed, 15 Nov 2017 14:00:00 +0000</pubDate>
+      
+      <guid>http://hawkingrei.com/posts/articles/varint_in_leveldb/2017-11-15-varint-in-leveldb/</guid>
+      <description>C++一直是我想要学习的编程语言之一，但是拖延症，使我始终都没有学个明白。所以借LevelDb代码阅读之际，复习一下，随带学习一下KV数据库
+Varint介绍 Varint是Leveldb中的一种表示数字的方法，他用一个或多个字节表示一个数字，值越少的数字，所占用的字节数越少。比如对于int32类型的数字，一般需要4个byte来表示。但是采用Varint，对于很小的int32类型的数字，则可以用1个byte来表示。当然凡事都有好的也有不好的一面，采用Varint表示法，大的数字则需要5个byte来表示。从统计的角度来说，一般不会所有的消息中的数字都是大数，因此大多数情况下，采用Varint 后，可以用更少的字节数来表示数字信息。
+Varint每个byte的最高位bit有特殊含义，如果该位为1，表示后续的byte也是该数字的一部分，如果该位为0，则结束。其他的7 个bit都用来表示数字。因此小于128的数字都可以用一个byte表示。大于 128的数字，比如300，会用两个字节来表示：1010 1100 0000 0010。
+Varint源代码分析 Varint的源代码位于LevelDB的util/coding.cc，util/coding.h内
+我们来看一下util/coding.cc, 正常情况下，int需要32位，varint用一个字节的最高为做标识位，所以，一个字节只能存储7位，如果整数特别大，可能需要5个字节才能存放{5 * 8 - 5(标识位) &amp;gt; 32}，下面的if语句有5个分支，正好对应varint占用1到5个字节的情况。
+char* EncodeVarint32(char* dst, uint32_t v) {  // Operate on characters as unsigneds  unsigned char* ptr = reinterpret_cast&amp;lt;unsigned char*&amp;gt;(dst);  static const int B = 128;  if (v &amp;lt; (1&amp;lt;&amp;lt;7)) {  *(ptr++) = v;  } else if (v &amp;lt; (1&amp;lt;&amp;lt;14)) {  *(ptr++) = v | B;  *(ptr++) = v&amp;gt;&amp;gt;7;  } else if (v &amp;lt; (1&amp;lt;&amp;lt;21)) {  *(ptr++) = v | B;  *(ptr++) = (v&amp;gt;&amp;gt;7) | B;  *(ptr++) = v&amp;gt;&amp;gt;14;  } else if (v &amp;lt; (1&amp;lt;&amp;lt;28)) {  *(ptr++) = v | B;  *(ptr++) = (v&amp;gt;&amp;gt;7) | B;  *(ptr++) = (v&amp;gt;&amp;gt;14) | B;  *(ptr++) = v&amp;gt;&amp;gt;21;  } else {  *(ptr++) = v | B;  *(ptr++) = (v&amp;gt;&amp;gt;7) | B;  *(ptr++) = (v&amp;gt;&amp;gt;14) | B;  *(ptr++) = (v&amp;gt;&amp;gt;21) | B;  *(ptr++) = v&amp;gt;&amp;gt;28;  }  return reinterpret_cast&amp;lt;char*&amp;gt;(ptr); } 看了编码，我们再来看看解码util/coding.</description>
+    </item>
+    
+  </channel>
+</rss>

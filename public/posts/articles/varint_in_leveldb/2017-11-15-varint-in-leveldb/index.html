@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>LevelDB代码阅读：Varint - Hawkingrei</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta itemprop="name" content="LevelDB代码阅读：Varint">
+<meta itemprop="description" content="C&#43;&#43;一直是我想要学习的编程语言之一，但是拖延症，使我始终都没有学个明白。所以借LevelDb代码阅读之际，复习一下，随带学习一下KV数据库
+Varint介绍 Varint是Leveldb中的一种表示数字的方法，他用一个或多个字节表示一个数字，值越少的数字，所占用的字节数越少。比如对于int32类型的数字，一般需要4个byte来表示。但是采用Varint，对于很小的int32类型的数字，则可以用1个byte来表示。当然凡事都有好的也有不好的一面，采用Varint表示法，大的数字则需要5个byte来表示。从统计的角度来说，一般不会所有的消息中的数字都是大数，因此大多数情况下，采用Varint 后，可以用更少的字节数来表示数字信息。
+Varint每个byte的最高位bit有特殊含义，如果该位为1，表示后续的byte也是该数字的一部分，如果该位为0，则结束。其他的7 个bit都用来表示数字。因此小于128的数字都可以用一个byte表示。大于 128的数字，比如300，会用两个字节来表示：1010 1100 0000 0010。
+Varint源代码分析 Varint的源代码位于LevelDB的util/coding.cc，util/coding.h内
+我们来看一下util/coding.cc, 正常情况下，int需要32位，varint用一个字节的最高为做标识位，所以，一个字节只能存储7位，如果整数特别大，可能需要5个字节才能存放{5 * 8 - 5(标识位) &gt; 32}，下面的if语句有5个分支，正好对应varint占用1到5个字节的情况。
+char* EncodeVarint32(char* dst, uint32_t v) {  // Operate on characters as unsigneds  unsigned char* ptr = reinterpret_cast&lt;unsigned char*&gt;(dst);  static const int B = 128;  if (v &lt; (1&lt;&lt;7)) {  *(ptr&#43;&#43;) = v;  } else if (v &lt; (1&lt;&lt;14)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = v&gt;&gt;7;  } else if (v &lt; (1&lt;&lt;21)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = v&gt;&gt;14;  } else if (v &lt; (1&lt;&lt;28)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;14) | B;  *(ptr&#43;&#43;) = v&gt;&gt;21;  } else {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;14) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;21) | B;  *(ptr&#43;&#43;) = v&gt;&gt;28;  }  return reinterpret_cast&lt;char*&gt;(ptr); } 看了编码，我们再来看看解码util/coding."><meta itemprop="datePublished" content="2017-11-15T14:00:00+00:00" />
+<meta itemprop="dateModified" content="2017-11-15T14:00:00+00:00" />
+<meta itemprop="wordCount" content="422">
+<meta itemprop="keywords" content="LevelDB," /><meta property="og:title" content="LevelDB代码阅读：Varint" />
+<meta property="og:description" content="C&#43;&#43;一直是我想要学习的编程语言之一，但是拖延症，使我始终都没有学个明白。所以借LevelDb代码阅读之际，复习一下，随带学习一下KV数据库
+Varint介绍 Varint是Leveldb中的一种表示数字的方法，他用一个或多个字节表示一个数字，值越少的数字，所占用的字节数越少。比如对于int32类型的数字，一般需要4个byte来表示。但是采用Varint，对于很小的int32类型的数字，则可以用1个byte来表示。当然凡事都有好的也有不好的一面，采用Varint表示法，大的数字则需要5个byte来表示。从统计的角度来说，一般不会所有的消息中的数字都是大数，因此大多数情况下，采用Varint 后，可以用更少的字节数来表示数字信息。
+Varint每个byte的最高位bit有特殊含义，如果该位为1，表示后续的byte也是该数字的一部分，如果该位为0，则结束。其他的7 个bit都用来表示数字。因此小于128的数字都可以用一个byte表示。大于 128的数字，比如300，会用两个字节来表示：1010 1100 0000 0010。
+Varint源代码分析 Varint的源代码位于LevelDB的util/coding.cc，util/coding.h内
+我们来看一下util/coding.cc, 正常情况下，int需要32位，varint用一个字节的最高为做标识位，所以，一个字节只能存储7位，如果整数特别大，可能需要5个字节才能存放{5 * 8 - 5(标识位) &gt; 32}，下面的if语句有5个分支，正好对应varint占用1到5个字节的情况。
+char* EncodeVarint32(char* dst, uint32_t v) {  // Operate on characters as unsigneds  unsigned char* ptr = reinterpret_cast&lt;unsigned char*&gt;(dst);  static const int B = 128;  if (v &lt; (1&lt;&lt;7)) {  *(ptr&#43;&#43;) = v;  } else if (v &lt; (1&lt;&lt;14)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = v&gt;&gt;7;  } else if (v &lt; (1&lt;&lt;21)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = v&gt;&gt;14;  } else if (v &lt; (1&lt;&lt;28)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;14) | B;  *(ptr&#43;&#43;) = v&gt;&gt;21;  } else {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;14) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;21) | B;  *(ptr&#43;&#43;) = v&gt;&gt;28;  }  return reinterpret_cast&lt;char*&gt;(ptr); } 看了编码，我们再来看看解码util/coding." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://hawkingrei.com/posts/articles/varint_in_leveldb/2017-11-15-varint-in-leveldb/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2017-11-15T14:00:00+00:00" />
+<meta property="article:modified_time" content="2017-11-15T14:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="LevelDB代码阅读：Varint"/>
+<meta name="twitter:description" content="C&#43;&#43;一直是我想要学习的编程语言之一，但是拖延症，使我始终都没有学个明白。所以借LevelDb代码阅读之际，复习一下，随带学习一下KV数据库
+Varint介绍 Varint是Leveldb中的一种表示数字的方法，他用一个或多个字节表示一个数字，值越少的数字，所占用的字节数越少。比如对于int32类型的数字，一般需要4个byte来表示。但是采用Varint，对于很小的int32类型的数字，则可以用1个byte来表示。当然凡事都有好的也有不好的一面，采用Varint表示法，大的数字则需要5个byte来表示。从统计的角度来说，一般不会所有的消息中的数字都是大数，因此大多数情况下，采用Varint 后，可以用更少的字节数来表示数字信息。
+Varint每个byte的最高位bit有特殊含义，如果该位为1，表示后续的byte也是该数字的一部分，如果该位为0，则结束。其他的7 个bit都用来表示数字。因此小于128的数字都可以用一个byte表示。大于 128的数字，比如300，会用两个字节来表示：1010 1100 0000 0010。
+Varint源代码分析 Varint的源代码位于LevelDB的util/coding.cc，util/coding.h内
+我们来看一下util/coding.cc, 正常情况下，int需要32位，varint用一个字节的最高为做标识位，所以，一个字节只能存储7位，如果整数特别大，可能需要5个字节才能存放{5 * 8 - 5(标识位) &gt; 32}，下面的if语句有5个分支，正好对应varint占用1到5个字节的情况。
+char* EncodeVarint32(char* dst, uint32_t v) {  // Operate on characters as unsigneds  unsigned char* ptr = reinterpret_cast&lt;unsigned char*&gt;(dst);  static const int B = 128;  if (v &lt; (1&lt;&lt;7)) {  *(ptr&#43;&#43;) = v;  } else if (v &lt; (1&lt;&lt;14)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = v&gt;&gt;7;  } else if (v &lt; (1&lt;&lt;21)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = v&gt;&gt;14;  } else if (v &lt; (1&lt;&lt;28)) {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;14) | B;  *(ptr&#43;&#43;) = v&gt;&gt;21;  } else {  *(ptr&#43;&#43;) = v | B;  *(ptr&#43;&#43;) = (v&gt;&gt;7) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;14) | B;  *(ptr&#43;&#43;) = (v&gt;&gt;21) | B;  *(ptr&#43;&#43;) = v&gt;&gt;28;  }  return reinterpret_cast&lt;char*&gt;(ptr); } 看了编码，我们再来看看解码util/coding."/>
+<link href='https://fonts.googleapis.com/css?family=Playfair+Display:700' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" type="text/css" media="screen" href="http://hawkingrei.com/css/normalize.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="http://hawkingrei.com/css/main.css" />
+
+        <link id="dark-scheme" rel="stylesheet" type="text/css" href="http://hawkingrei.com/css/dark.css" />
+
+	<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+		<script src="http://hawkingrei.com/js/main.js"></script>
+</head>
+
+<body>
+	<div class="container wrapper">
+		<div class="header">
+	
+		<div class="avatar">
+			<a href="http://hawkingrei.com/">
+				<img src="https://avatars.githubusercontent.com/u/3427324" alt="Hawkingrei" />
+			</a>
+		</div>
+	
+	<h1 class="site-title"><a href="http://hawkingrei.com/">Hawkingrei</a></h1>
+	<div class="site-description"><p>一生想做浪漫极客</p><nav class="nav social">
+			<ul class="flat"><li><a href="https://github.com/hawkingrei" title="GitHub"><i data-feather="github"></i></a></li></ul>
+		</nav>
+	</div>
+
+	<nav class="nav">
+		<ul class="flat">
+			
+		</ul>
+	</nav>
+</div>
+
+
+		<div class="post">
+			<div class="post-header">
+				
+					<div class="meta">
+						<div class="date">
+							<span class="day">15</span>
+							<span class="rest">Nov 2017</span>
+						</div>
+					</div>
+				
+				<div class="matter">
+					<h1 class="title">LevelDB代码阅读：Varint</h1>
+				</div>
+			</div>
+					
+			<div class="markdown">
+				<p>C++一直是我想要学习的编程语言之一，但是拖延症，使我始终都没有学个明白。所以借LevelDb代码阅读之际，复习一下，随带学习一下KV数据库</p>
+<h2 id="varint介绍">Varint介绍</h2>
+<p>Varint是Leveldb中的一种表示数字的方法，他用一个或多个字节表示一个数字，值越少的数字，所占用的字节数越少。比如对于int32类型的数字，一般需要4个byte来表示。但是采用Varint，对于很小的int32类型的数字，则可以用1个byte来表示。当然凡事都有好的也有不好的一面，采用Varint表示法，大的数字则需要5个byte来表示。从统计的角度来说，一般不会所有的消息中的数字都是大数，因此大多数情况下，采用Varint 后，可以用更少的字节数来表示数字信息。</p>
+<p>Varint每个byte的最高位bit有特殊含义，如果该位为1，表示后续的byte也是该数字的一部分，如果该位为0，则结束。其他的7 个bit都用来表示数字。因此小于128的数字都可以用一个byte表示。大于 128的数字，比如300，会用两个字节来表示：1010 1100 0000 0010。</p>
+<h2 id="varint源代码分析">Varint源代码分析</h2>
+<p>Varint的源代码位于LevelDB的<a href="">util/coding.cc，util/coding.h</a>内</p>
+<p>我们来看一下<a href="https://github.com/google/leveldb/blob/master/util/coding.cc">util/coding.cc</a>,
+正常情况下，int需要32位，varint用一个字节的最高为做标识位，所以，一个字节只能存储7位，如果整数特别大，可能需要5个字节才能存放{5 * 8 - 5(标识位) &gt; 32}，下面的if语句有5个分支，正好对应varint占用1到5个字节的情况。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#2b91af">char</span>* EncodeVarint32(<span style="color:#2b91af">char</span>* dst, <span style="color:#2b91af">uint32_t</span> v) {
+</span></span><span style="display:flex;"><span>  <span style="color:#008000">// Operate on characters as unsigneds
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>  <span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>* ptr = <span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>*&gt;(dst);
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">static</span> <span style="color:#00f">const</span> <span style="color:#2b91af">int</span> B = 128;
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">if</span> (v &lt; (1&lt;&lt;7)) {
+</span></span><span style="display:flex;"><span>    *(ptr++) = v;
+</span></span><span style="display:flex;"><span>  } <span style="color:#00f">else</span> <span style="color:#00f">if</span> (v &lt; (1&lt;&lt;14)) {
+</span></span><span style="display:flex;"><span>    *(ptr++) = v | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = v&gt;&gt;7;
+</span></span><span style="display:flex;"><span>  } <span style="color:#00f">else</span> <span style="color:#00f">if</span> (v &lt; (1&lt;&lt;21)) {
+</span></span><span style="display:flex;"><span>    *(ptr++) = v | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = (v&gt;&gt;7) | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = v&gt;&gt;14;
+</span></span><span style="display:flex;"><span>  } <span style="color:#00f">else</span> <span style="color:#00f">if</span> (v &lt; (1&lt;&lt;28)) {
+</span></span><span style="display:flex;"><span>    *(ptr++) = v | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = (v&gt;&gt;7) | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = (v&gt;&gt;14) | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = v&gt;&gt;21;
+</span></span><span style="display:flex;"><span>  } <span style="color:#00f">else</span> {
+</span></span><span style="display:flex;"><span>    *(ptr++) = v | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = (v&gt;&gt;7) | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = (v&gt;&gt;14) | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = (v&gt;&gt;21) | B;
+</span></span><span style="display:flex;"><span>    *(ptr++) = v&gt;&gt;28;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">return</span> <span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#2b91af">char</span>*&gt;(ptr);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>看了编码，我们再来看看解码<a href="https://github.com/google/leveldb/blob/master/util/coding.h">util/coding.h</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00f">inline</span> <span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* GetVarint32Ptr(<span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* p,
+</span></span><span style="display:flex;"><span>                                  <span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* limit,
+</span></span><span style="display:flex;"><span>                                  <span style="color:#2b91af">uint32_t</span>* value) {
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">if</span> (p &lt; limit) {
+</span></span><span style="display:flex;"><span>    <span style="color:#2b91af">uint32_t</span> result = *(<span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#00f">const</span> <span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>*&gt;(p));
+</span></span><span style="display:flex;"><span>    <span style="color:#00f">if</span> ((result &amp; 128) == 0) { 
+</span></span><span style="display:flex;"><span>      *value = result;
+</span></span><span style="display:flex;"><span>      <span style="color:#00f">return</span> p + 1;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">return</span> GetVarint32PtrFallback(p, limit, value);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这里的limit是从GetVarint32传入，看下面的代码，Slice是LevelDB的自定义string，类似于redis的SDS。首先得到Slice数据的起始指针，再用<code>p + input-&gt;size()</code>来获得结束指针。value用于存储返回的int值。</p>
+<p>如果<code>result &amp; 128 </code>等于0，则直接解码。128对应二进制为 1000 0000，只有最高位为1，对应 varint的字节中最高特殊位，如果特殊位为0，代表该字节直接可以表示给数字。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>bool GetVarint32(Slice* input, uint32_t* value) {
+</span></span><span style="display:flex;"><span>  const char* p = input-&gt;data();
+</span></span><span style="display:flex;"><span>  const char* limit = p + input-&gt;size();
+</span></span><span style="display:flex;"><span>const char* q = GetVarint32Ptr(p, limit, value);
+</span></span></code></pre></div><p>否者调用GetVarint32PtrFallback获得uint32</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* GetVarint32PtrFallback(<span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* p,
+</span></span><span style="display:flex;"><span>                                   <span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* limit,
+</span></span><span style="display:flex;"><span>                                   <span style="color:#2b91af">uint32_t</span>* value) {
+</span></span><span style="display:flex;"><span>  <span style="color:#2b91af">uint32_t</span> result = 0;
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">for</span> (<span style="color:#2b91af">uint32_t</span> shift = 0; shift &lt;= 28 &amp;&amp; p &lt; limit; shift += 7) {
+</span></span><span style="display:flex;"><span>    <span style="color:#2b91af">uint32_t</span> byte = *(<span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#00f">const</span> <span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>*&gt;(p));
+</span></span><span style="display:flex;"><span>    p++;  <span style="color:#008000">//p指针向前移动
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>    <span style="color:#00f">if</span> (byte &amp; 128) {
+</span></span><span style="display:flex;"><span>      <span style="color:#008000">// More bytes are present
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>      result |= ((byte &amp; 127) &lt;&lt; shift);  <span style="color:#008000">//取7位到result
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>    } <span style="color:#00f">else</span> {
+</span></span><span style="display:flex;"><span>      result |= (byte &lt;&lt; shift); <span style="color:#008000">//获得最后一位
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>      *value = result;
+</span></span><span style="display:flex;"><span>      <span style="color:#00f">return</span> <span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#00f">const</span> <span style="color:#2b91af">char</span>*&gt;(p);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">return</span> NULL;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>现在我们再来看看Varint64的编译和解析，在原理上和Varint如出一辙。但是编译上和32位略有不同，而是使用了一个循环来解决</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#2b91af">char</span>* EncodeVarint64(<span style="color:#2b91af">char</span>* dst, <span style="color:#2b91af">uint64_t</span> v) {
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">static</span> <span style="color:#00f">const</span> <span style="color:#2b91af">int</span> B = 128;
+</span></span><span style="display:flex;"><span>  <span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>* ptr = <span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>*&gt;(dst);
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">while</span> (v &gt;= B) {
+</span></span><span style="display:flex;"><span>    *(ptr++) = (v &amp; (B-1)) | B;
+</span></span><span style="display:flex;"><span>    v &gt;&gt;= 7;
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  *(ptr++) = <span style="color:#00f">static_cast</span>&lt;<span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>&gt;(v); 
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">return</span> <span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#2b91af">char</span>*&gt;(ptr);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>解析Varint64，也和Varint32如出一则</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* GetVarint64Ptr(<span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* p, <span style="color:#00f">const</span> <span style="color:#2b91af">char</span>* limit, <span style="color:#2b91af">uint64_t</span>* value) {
+</span></span><span style="display:flex;"><span>  <span style="color:#2b91af">uint64_t</span> result = 0;
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">for</span> (<span style="color:#2b91af">uint32_t</span> shift = 0; shift &lt;= 63 &amp;&amp; p &lt; limit; shift += 7) {
+</span></span><span style="display:flex;"><span>    <span style="color:#2b91af">uint64_t</span> byte = *(<span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#00f">const</span> <span style="color:#2b91af">unsigned</span> <span style="color:#2b91af">char</span>*&gt;(p));
+</span></span><span style="display:flex;"><span>    p++;
+</span></span><span style="display:flex;"><span>    <span style="color:#00f">if</span> (byte &amp; 128) {
+</span></span><span style="display:flex;"><span>      <span style="color:#008000">// More bytes are present
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>      result |= ((byte &amp; 127) &lt;&lt; shift);
+</span></span><span style="display:flex;"><span>    } <span style="color:#00f">else</span> {
+</span></span><span style="display:flex;"><span>      result |= (byte &lt;&lt; shift);
+</span></span><span style="display:flex;"><span>      *value = result;
+</span></span><span style="display:flex;"><span>      <span style="color:#00f">return</span> <span style="color:#00f">reinterpret_cast</span>&lt;<span style="color:#00f">const</span> <span style="color:#2b91af">char</span>*&gt;(p);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  <span style="color:#00f">return</span> NULL;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="reinterpret_cast有何作用">reinterpret_cast有何作用</h2>
+<p>reinterpret_cast用在任意指针（或引用）类型之间的转换；以及指针与足够大的整数类型之间的转换；从整数类型（包括枚举类型）到指针类型，无视大小。但是这种随意的转换必然会带来需要的问题，这个的讨论在之后的Blog，再来论述。</p>
+<h2 id="参考文章">参考文章</h2>
+<ul>
+<li><a href="http://mingxinglai.com/cn/2013/01/leveldb-varint32/">LevelDB源码剖析之Varint</a></li>
+<li><a href="https://www.cnblogs.com/ider/archive/2011/07/30/cpp_cast_operator_part3.html">C++标准转换运算符reinterpret_cast</a></li>
+</ul>
+
+			</div>
+
+			<div class="tags">
+				
+					
+						<ul class="flat">
+							
+							<li><a href="/tags/leveldb">LevelDB</a></li>
+							
+						</ul>
+					
+				
+			</div></div>
+	</div>
+	<div class="footer wrapper">
+	<nav class="nav">
+		<div>2022  © Hawkingrei |  <a href="https://github.com/knadh/hugo-ink">Ink</a> theme on <a href="https://gohugo.io">Hugo</a></div>
+	</nav>
+</div>
+
+<script>feather.replace()</script>
+</body>
+</html>

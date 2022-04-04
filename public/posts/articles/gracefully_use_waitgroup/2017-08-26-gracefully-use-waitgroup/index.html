@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>优雅の使用sync.WaitGroup - Hawkingrei</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta itemprop="name" content="优雅の使用sync.WaitGroup">
+<meta itemprop="description" content="Background 自从上次参加2017 GopherChina被安利了NSQ后，阅读了NSQ的源代码,从中学到了不少代码技巧。于是乎，我就把这些代码技巧运用到了veda上，提高了代码质量。
+WaitGroup介绍 WaitGroup用来等待一群goroutine结束，主Goroutine调用Add来设置有多少goroutines需要去等待。然后各个goroutines开始运行，当结束时，调用Done。同时，可以使用Wait来堵塞程序，直到全部Goroutines已经结束。下面是一个WaitGroup的小例子。
+var wg sync.WaitGroup var urls = []string{  &#34;http://www.golang.org/&#34;,  &#34;http://www.google.com/&#34;,  &#34;http://www.somestupidname.com/&#34;, } for _, url := range urls {  // Increment the WaitGroup counter.  wg.Add(1)  // Launch a goroutine to fetch the URL.  go func(url string) {  // Decrement the counter when the goroutine completes.  defer wg.Done()  // Fetch the URL.  http.Get(url)  }(url) } // Wait for all HTTP fetches to complete."><meta itemprop="datePublished" content="2017-08-26T14:00:00+00:00" />
+<meta itemprop="dateModified" content="2017-08-26T14:00:00+00:00" />
+<meta itemprop="wordCount" content="158">
+<meta itemprop="keywords" content="Golang," /><meta property="og:title" content="优雅の使用sync.WaitGroup" />
+<meta property="og:description" content="Background 自从上次参加2017 GopherChina被安利了NSQ后，阅读了NSQ的源代码,从中学到了不少代码技巧。于是乎，我就把这些代码技巧运用到了veda上，提高了代码质量。
+WaitGroup介绍 WaitGroup用来等待一群goroutine结束，主Goroutine调用Add来设置有多少goroutines需要去等待。然后各个goroutines开始运行，当结束时，调用Done。同时，可以使用Wait来堵塞程序，直到全部Goroutines已经结束。下面是一个WaitGroup的小例子。
+var wg sync.WaitGroup var urls = []string{  &#34;http://www.golang.org/&#34;,  &#34;http://www.google.com/&#34;,  &#34;http://www.somestupidname.com/&#34;, } for _, url := range urls {  // Increment the WaitGroup counter.  wg.Add(1)  // Launch a goroutine to fetch the URL.  go func(url string) {  // Decrement the counter when the goroutine completes.  defer wg.Done()  // Fetch the URL.  http.Get(url)  }(url) } // Wait for all HTTP fetches to complete." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://hawkingrei.com/posts/articles/gracefully_use_waitgroup/2017-08-26-gracefully-use-waitgroup/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2017-08-26T14:00:00+00:00" />
+<meta property="article:modified_time" content="2017-08-26T14:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="优雅の使用sync.WaitGroup"/>
+<meta name="twitter:description" content="Background 自从上次参加2017 GopherChina被安利了NSQ后，阅读了NSQ的源代码,从中学到了不少代码技巧。于是乎，我就把这些代码技巧运用到了veda上，提高了代码质量。
+WaitGroup介绍 WaitGroup用来等待一群goroutine结束，主Goroutine调用Add来设置有多少goroutines需要去等待。然后各个goroutines开始运行，当结束时，调用Done。同时，可以使用Wait来堵塞程序，直到全部Goroutines已经结束。下面是一个WaitGroup的小例子。
+var wg sync.WaitGroup var urls = []string{  &#34;http://www.golang.org/&#34;,  &#34;http://www.google.com/&#34;,  &#34;http://www.somestupidname.com/&#34;, } for _, url := range urls {  // Increment the WaitGroup counter.  wg.Add(1)  // Launch a goroutine to fetch the URL.  go func(url string) {  // Decrement the counter when the goroutine completes.  defer wg.Done()  // Fetch the URL.  http.Get(url)  }(url) } // Wait for all HTTP fetches to complete."/>
+<link href='https://fonts.googleapis.com/css?family=Playfair+Display:700' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" type="text/css" media="screen" href="http://hawkingrei.com/css/normalize.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="http://hawkingrei.com/css/main.css" />
+
+        <link id="dark-scheme" rel="stylesheet" type="text/css" href="http://hawkingrei.com/css/dark.css" />
+
+	<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+		<script src="http://hawkingrei.com/js/main.js"></script>
+</head>
+
+<body>
+	<div class="container wrapper">
+		<div class="header">
+	
+		<div class="avatar">
+			<a href="http://hawkingrei.com/">
+				<img src="https://avatars.githubusercontent.com/u/3427324" alt="Hawkingrei" />
+			</a>
+		</div>
+	
+	<h1 class="site-title"><a href="http://hawkingrei.com/">Hawkingrei</a></h1>
+	<div class="site-description"><p>一生想做浪漫极客</p><nav class="nav social">
+			<ul class="flat"><li><a href="https://github.com/hawkingrei" title="GitHub"><i data-feather="github"></i></a></li></ul>
+		</nav>
+	</div>
+
+	<nav class="nav">
+		<ul class="flat">
+			
+		</ul>
+	</nav>
+</div>
+
+
+		<div class="post">
+			<div class="post-header">
+				
+					<div class="meta">
+						<div class="date">
+							<span class="day">26</span>
+							<span class="rest">Aug 2017</span>
+						</div>
+					</div>
+				
+				<div class="matter">
+					<h1 class="title">优雅の使用sync.WaitGroup</h1>
+				</div>
+			</div>
+					
+			<div class="markdown">
+				<h2 id="background">Background</h2>
+<p>自从上次参加2017 GopherChina被安利了NSQ后，阅读了<a href="https://github.com/nsqio/nsq">NSQ</a>的源代码,从中学到了不少代码技巧。于是乎，我就把这些代码技巧运用到了<a href="https://github.com/hawkingrei/veda">veda</a>上，提高了代码质量。</p>
+<h2 id="waitgroup介绍">WaitGroup介绍</h2>
+<p>WaitGroup用来等待一群goroutine结束，主Goroutine调用Add来设置有多少goroutines需要去等待。然后各个goroutines开始运行，当结束时，调用Done。同时，可以使用Wait来堵塞程序，直到全部Goroutines已经结束。下面是一个WaitGroup的小例子。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#00f">var</span> wg sync.WaitGroup
+</span></span><span style="display:flex;"><span><span style="color:#00f">var</span> urls = []<span style="color:#2b91af">string</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a31515">&#34;http://www.golang.org/&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a31515">&#34;http://www.google.com/&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a31515">&#34;http://www.somestupidname.com/&#34;</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#00f">for</span> _, url := <span style="color:#00f">range</span> urls {
+</span></span><span style="display:flex;"><span>        <span style="color:#008000">// Increment the WaitGroup counter.
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>        wg.Add(1)
+</span></span><span style="display:flex;"><span>        <span style="color:#008000">// Launch a goroutine to fetch the URL.
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>        <span style="color:#00f">go</span> <span style="color:#00f">func</span>(url <span style="color:#2b91af">string</span>) {
+</span></span><span style="display:flex;"><span>                <span style="color:#008000">// Decrement the counter when the goroutine completes.
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>                <span style="color:#00f">defer</span> wg.Done()
+</span></span><span style="display:flex;"><span>                <span style="color:#008000">// Fetch the URL.
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>                http.Get(url)
+</span></span><span style="display:flex;"><span>        }(url)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#008000">// Wait for all HTTP fetches to complete.
+</span></span></span><span style="display:flex;"><span><span style="color:#008000"></span>wg.Wait()
+</span></span></code></pre></div><h2 id="好写法">好写法</h2>
+<p>一个子长度最佳长度在50~150行。而在使用中，按照上面官方的例子中的写法，开发者需要自己在启动前加上Add,结束后加上Done，无形中增加代码行数。其次在启动子goroutines时，如果启动的goroutines逻辑比较复杂，可以单独写一个子函数，提高代码的可读性。</p>
+<p>在NSQ中有一个<a href="https://github.com/nsqio/nsq/blob/master/internal/util/wait_group_wrapper.go">很好的写法</a>，首先要实现一个代理类，把WaitGroup的行为封装进去:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#00f">package</span> util
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00f">import</span> (
+</span></span><span style="display:flex;"><span>	<span style="color:#a31515">&#34;sync&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00f">type</span> WaitGroupWrapper <span style="color:#00f">struct</span> {
+</span></span><span style="display:flex;"><span>	sync.WaitGroup
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00f">func</span> (w *WaitGroupWrapper) Wrap(cb <span style="color:#00f">func</span>()) {
+</span></span><span style="display:flex;"><span>	w.Add(1)
+</span></span><span style="display:flex;"><span>	<span style="color:#00f">go</span> <span style="color:#00f">func</span>() {
+</span></span><span style="display:flex;"><span>		cb()
+</span></span><span style="display:flex;"><span>		w.Done()
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>使用的时候(<a href="https://github.com/nsqio/nsq/blob/master/nsqd/nsqd.go">完整代码</a>)：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#00f">type</span> NSQD <span style="color:#00f">struct</span> {
+</span></span><span style="display:flex;"><span>	waitGroup            util.WaitGroupWrapper
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00f">func</span> New(opts *Options) *NSQD {
+</span></span><span style="display:flex;"><span>	n := &amp;NSQD{
+</span></span><span style="display:flex;"><span>		startTime:            time.Now(),
+</span></span><span style="display:flex;"><span>		topicMap:             make(<span style="color:#00f">map</span>[<span style="color:#2b91af">string</span>]*Topic),
+</span></span><span style="display:flex;"><span>		exitChan:             make(<span style="color:#00f">chan</span> <span style="color:#2b91af">int</span>),
+</span></span><span style="display:flex;"><span>		notifyChan:           make(<span style="color:#00f">chan</span> <span style="color:#00f">interface</span>{}),
+</span></span><span style="display:flex;"><span>		optsNotificationChan: make(<span style="color:#00f">chan</span> <span style="color:#00f">struct</span>{}, 1),
+</span></span><span style="display:flex;"><span>		dl:                   dirlock.New(dataPath),
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00f">func</span> (n *NSQD) Main() {
+</span></span><span style="display:flex;"><span>	n.waitGroup.Wrap(<span style="color:#00f">func</span>() {
+</span></span><span style="display:flex;"><span>		protocol.TCPServer(n.tcpListener, tcpServer,	n.logf)
+</span></span><span style="display:flex;"><span>	})
+</span></span><span style="display:flex;"><span>	n.waitGroup.Wrap(<span style="color:#00f">func</span>() { n.queueScanLoop() })
+</span></span><span style="display:flex;"><span>	n.waitGroup.Wrap(<span style="color:#00f">func</span>() { n.lookupLoop() })
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00f">func</span> (n *NSQD) Exit() {
+</span></span><span style="display:flex;"><span>	n.waitGroup.Wait()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>于是乎，golang的WaitGroup现在只要Wrap和Wait就能完成，是不是干净简单很多了呢？</p>
+
+			</div>
+
+			<div class="tags">
+				
+					
+						<ul class="flat">
+							
+							<li><a href="/tags/golang">Golang</a></li>
+							
+						</ul>
+					
+				
+			</div></div>
+	</div>
+	<div class="footer wrapper">
+	<nav class="nav">
+		<div>2022  © Hawkingrei |  <a href="https://github.com/knadh/hugo-ink">Ink</a> theme on <a href="https://gohugo.io">Hugo</a></div>
+	</nav>
+</div>
+
+<script>feather.replace()</script>
+</body>
+</html>

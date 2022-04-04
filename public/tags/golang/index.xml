@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Golang on Hawkingrei</title>
+    <link>http://hawkingrei.com/tags/golang/</link>
+    <description>Recent content in Golang on Hawkingrei</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© Hawkingrei</copyright>
+    <lastBuildDate>Sat, 26 Aug 2017 14:00:00 +0000</lastBuildDate><atom:link href="http://hawkingrei.com/tags/golang/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>优雅の使用sync.WaitGroup</title>
+      <link>http://hawkingrei.com/posts/articles/gracefully_use_waitgroup/2017-08-26-gracefully-use-waitgroup/</link>
+      <pubDate>Sat, 26 Aug 2017 14:00:00 +0000</pubDate>
+      
+      <guid>http://hawkingrei.com/posts/articles/gracefully_use_waitgroup/2017-08-26-gracefully-use-waitgroup/</guid>
+      <description>Background 自从上次参加2017 GopherChina被安利了NSQ后，阅读了NSQ的源代码,从中学到了不少代码技巧。于是乎，我就把这些代码技巧运用到了veda上，提高了代码质量。
+WaitGroup介绍 WaitGroup用来等待一群goroutine结束，主Goroutine调用Add来设置有多少goroutines需要去等待。然后各个goroutines开始运行，当结束时，调用Done。同时，可以使用Wait来堵塞程序，直到全部Goroutines已经结束。下面是一个WaitGroup的小例子。
+var wg sync.WaitGroup var urls = []string{  &amp;#34;http://www.golang.org/&amp;#34;,  &amp;#34;http://www.google.com/&amp;#34;,  &amp;#34;http://www.somestupidname.com/&amp;#34;, } for _, url := range urls {  // Increment the WaitGroup counter.  wg.Add(1)  // Launch a goroutine to fetch the URL.  go func(url string) {  // Decrement the counter when the goroutine completes.  defer wg.Done()  // Fetch the URL.  http.Get(url)  }(url) } // Wait for all HTTP fetches to complete.</description>
+    </item>
+    
+  </channel>
+</rss>
