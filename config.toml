@@ -1,4 +1,4 @@
-baseURL = 'http://blog.hawkingrei.com/'
+baseURL = 'https://blog.hawkingrei.com/'
 copyright = "© Hawkingrei"
 languageCode = 'en-us'
 theme = 'hugo-ink'
